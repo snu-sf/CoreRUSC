@@ -98,21 +98,13 @@ Section SEMANTICS.
 
   Definition link_sk: option Sk.t := link_list (List.map Mod.sk p).
 
-  Definition skenv_fill_internals (skenv: SkEnv.t): SkEnv.t :=
-    (Genv.map_defs skenv) (fun gd => Some
-                                      match gd with
-                                      | Gfun (External ef) => (Gfun (Internal (ef_sig ef)))
-                                      | Gfun _ => gd
-                                      | Gvar gv => gd
-                                      end).
-
   Definition load_system (skenv: SkEnv.t): (ModSem.t * SkEnv.t) :=
-    (System.modsem skenv, (skenv_fill_internals skenv)).
+    (System.modsem skenv, SkEnv.empty).
 
   Definition load_modsems (skenv: SkEnv.t): list ModSem.t := List.map ((flip Mod.modsem) skenv) p.
 
   Definition load_genv (init_skenv: SkEnv.t): Ge.t :=
-    let (system, skenv) := load_system init_skenv in
+    let (system, _) := load_system init_skenv in
     (system :: (load_modsems init_skenv), init_skenv).
 
   (* Making dummy_module that calls main? => Then what is sk of it? Memory will be different with physical linking *)

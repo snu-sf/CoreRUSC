@@ -18,11 +18,10 @@ Section SYSMODSEM.
   Definition globalenv: genvtype := skenv_link.
 
   Definition skenv: SkEnv.t :=
-    (Genv.map_defs skenv_link)(fun gd =>
-                                 match gd with
-                                 | Gfun (External ef) => Some (Gfun (Internal (ef_sig (ef))))
-                                 | Gfun _ => None
-                                 | Gvar gv => Some gd
+    (Genv.filter_map_functs skenv_link)(fun fd =>
+                                 match fd with
+                                 | (External ef) => Some (Internal (ef_sig (ef)))
+                                 | _ => None
                                  end).
 
   (* Lemma skenv_globlaenv_equiv: Senv.equiv skenv globalenv. *)
