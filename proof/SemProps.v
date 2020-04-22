@@ -148,7 +148,7 @@ Module AUX.
     { eapply modsem_respects_disj; et. }
     assert(U: ForallOrdPairs modsem_disj (fst (load_genv p skenv_link))).
     { econs; et. rewrite Forall_forall.
-      ii. ss. unfold System.skenv in *. eapply Genv.map_defs_find_funct in FINDF. des_safe. des_ifs.
+      ii. ss. unfold System.skenv in *. eapply Genv.filter_map_funct_some in FINDF. des_safe. des_ifs.
       unfold load_modsems, flip, Mod.modsem in *. rewrite in_map_iff in *. des_safe. ss.
       rewrite <- Mod.get_modsem_skenv_spec in FINDF0.
       exploit SkEnv.project_linkorder; et.
