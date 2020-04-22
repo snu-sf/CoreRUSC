@@ -302,175 +302,175 @@ Qed.
 
 (** Infinitely many transitions *)
 
-(* CoInductive forever (ge: genv): state -> traceinf -> Prop := *)
-(*   | forever_intro: forall s1 t s2 T, *)
-(*       step ge s1 t s2 -> forever ge s2 T -> *)
-(*       forever ge s1 (t *** T). *)
+CoInductive forever (ge: genv): state -> traceinf -> Prop :=
+  | forever_intro: forall s1 t s2 T,
+      step ge s1 t s2 -> forever ge s2 T ->
+      forever ge s1 (t *** T).
 
-(* Lemma star_forever: *)
-(*   forall ge s1 t s2, star ge s1 t s2 -> *)
-(*   forall T, forever ge s2 T -> *)
-(*   forever ge s1 (t *** T). *)
-(* Proof. *)
-(*   induction 1; intros. simpl. auto. *)
-(*   subst t. rewrite Eappinf_assoc. *)
-(*   econstructor; eauto. *)
-(* Qed. *)
+Lemma star_forever:
+  forall ge s1 t s2, star ge s1 t s2 ->
+  forall T, forever ge s2 T ->
+  forever ge s1 (t *** T).
+Proof.
+  induction 1; intros. simpl. auto.
+  subst t. rewrite Eappinf_assoc.
+  econstructor; eauto.
+Qed.
 
 (** An alternate, equivalent definition of [forever] that is useful
     for coinductive reasoning. *)
 
-(* Variable A: Type. *)
-(* Variable order: A -> A -> Prop. *)
+Variable A: Type.
+Variable order: A -> A -> Prop.
 
-(* CoInductive forever_N (ge: genv) : A -> state -> traceinf -> Prop := *)
-(*   | forever_N_star: forall s1 t s2 a1 a2 T1 T2, *)
-(*       star ge s1 t s2 -> *)
-(*       order a2 a1 -> *)
-(*       forever_N ge a2 s2 T2 -> *)
-(*       T1 = t *** T2 -> *)
-(*       forever_N ge a1 s1 T1 *)
-(*   | forever_N_plus: forall s1 t s2 a1 a2 T1 T2, *)
-(*       plus ge s1 t s2 -> *)
-(*       forever_N ge a2 s2 T2 -> *)
-(*       T1 = t *** T2 -> *)
-(*       forever_N ge a1 s1 T1. *)
+CoInductive forever_N (ge: genv) : A -> state -> traceinf -> Prop :=
+  | forever_N_star: forall s1 t s2 a1 a2 T1 T2,
+      star ge s1 t s2 ->
+      order a2 a1 ->
+      forever_N ge a2 s2 T2 ->
+      T1 = t *** T2 ->
+      forever_N ge a1 s1 T1
+  | forever_N_plus: forall s1 t s2 a1 a2 T1 T2,
+      plus ge s1 t s2 ->
+      forever_N ge a2 s2 T2 ->
+      T1 = t *** T2 ->
+      forever_N ge a1 s1 T1.
 
-(* Hypothesis order_wf: well_founded order. *)
+Hypothesis order_wf: well_founded order.
 
-(* Lemma forever_N_inv: *)
-(*   forall ge a s T, *)
-(*   forever_N ge a s T -> *)
-(*   exists t, exists s', exists a', exists T', *)
-(*   step ge s t s' /\ forever_N ge a' s' T' /\ T = t *** T'. *)
-(* Proof. *)
-(*   intros ge a0. pattern a0. apply (well_founded_ind order_wf). *)
-(*   intros. inv H0. *)
-(*   (* star case *) *)
-(*   inv H1. *)
-(*   (* no transition *) *)
-(*   change (E0 *** T2) with T2. apply H with a2. auto. auto. *)
-(*   (* at least one transition *) *)
-(*   exists t1; exists s0; exists x; exists (t2 *** T2). *)
-(*   split. auto. split. eapply forever_N_star; eauto. *)
-(*   apply Eappinf_assoc. *)
-(*   (* plus case *) *)
-(*   inv H1. *)
-(*   exists t1; exists s0; exists a2; exists (t2 *** T2). *)
-(*   split. auto. *)
-(*   split. inv H3. auto. *)
-(*   eapply forever_N_plus. econstructor; eauto. eauto. auto. *)
-(*   apply Eappinf_assoc. *)
-(* Qed. *)
+Lemma forever_N_inv:
+  forall ge a s T,
+  forever_N ge a s T ->
+  exists t, exists s', exists a', exists T',
+  step ge s t s' /\ forever_N ge a' s' T' /\ T = t *** T'.
+Proof.
+  intros ge a0. pattern a0. apply (well_founded_ind order_wf).
+  intros. inv H0.
+  (* star case *)
+  inv H1.
+  (* no transition *)
+  change (E0 *** T2) with T2. apply H with a2. auto. auto.
+  (* at least one transition *)
+  exists t1; exists s0; exists x; exists (t2 *** T2).
+  split. auto. split. eapply forever_N_star; eauto.
+  apply Eappinf_assoc.
+  (* plus case *)
+  inv H1.
+  exists t1; exists s0; exists a2; exists (t2 *** T2).
+  split. auto.
+  split. inv H3. auto.
+  eapply forever_N_plus. econstructor; eauto. eauto. auto.
+  apply Eappinf_assoc.
+Qed.
 
-(* Lemma forever_N_forever: *)
-(*   forall ge a s T, forever_N ge a s T -> forever ge s T. *)
-(* Proof. *)
-(*   cofix COINDHYP; intros. *)
-(*   destruct (forever_N_inv H) as [t [s' [a' [T' [P [Q R]]]]]]. *)
-(*   rewrite R. apply forever_intro with s'. auto. *)
-(*   apply COINDHYP with a'; auto. *)
-(* Qed. *)
+Lemma forever_N_forever:
+  forall ge a s T, forever_N ge a s T -> forever ge s T.
+Proof.
+  cofix COINDHYP; intros.
+  destruct (forever_N_inv H) as [t [s' [a' [T' [P [Q R]]]]]].
+  rewrite R. apply forever_intro with s'. auto.
+  apply COINDHYP with a'; auto.
+Qed.
 
 (** Yet another alternative definition of [forever]. *)
 
-(* CoInductive forever_plus (ge: genv) : state -> traceinf -> Prop := *)
-(*   | forever_plus_intro: forall s1 t s2 T1 T2, *)
-(*       plus ge s1 t s2 -> *)
-(*       forever_plus ge s2 T2 -> *)
-(*       T1 = t *** T2 -> *)
-(*       forever_plus ge s1 T1. *)
+CoInductive forever_plus (ge: genv) : state -> traceinf -> Prop :=
+  | forever_plus_intro: forall s1 t s2 T1 T2,
+      plus ge s1 t s2 ->
+      forever_plus ge s2 T2 ->
+      T1 = t *** T2 ->
+      forever_plus ge s1 T1.
 
-(* Lemma forever_plus_inv: *)
-(*   forall ge s T, *)
-(*   forever_plus ge s T -> *)
-(*   exists s', exists t, exists T', *)
-(*   step ge s t s' /\ forever_plus ge s' T' /\ T = t *** T'. *)
-(* Proof. *)
-(*   intros. inv H. inv H0. exists s0; exists t1; exists (t2 *** T2). *)
-(*   split. auto. *)
-(*   split. exploit star_inv; eauto. intros [[P Q] | R]. *)
-(*     subst. simpl. auto. econstructor; eauto. *)
-(*   traceEq. *)
-(* Qed. *)
+Lemma forever_plus_inv:
+  forall ge s T,
+  forever_plus ge s T ->
+  exists s', exists t, exists T',
+  step ge s t s' /\ forever_plus ge s' T' /\ T = t *** T'.
+Proof.
+  intros. inv H. inv H0. exists s0; exists t1; exists (t2 *** T2).
+  split. auto.
+  split. exploit star_inv; eauto. intros [[P Q] | R].
+    subst. simpl. auto. econstructor; eauto.
+  traceEq.
+Qed.
 
-(* Lemma forever_plus_forever: *)
-(*   forall ge s T, forever_plus ge s T -> forever ge s T. *)
-(* Proof. *)
-(*   cofix COINDHYP; intros. *)
-(*   destruct (forever_plus_inv H) as [s' [t [T' [P [Q R]]]]]. *)
-(*   subst. econstructor; eauto. *)
-(* Qed. *)
+Lemma forever_plus_forever:
+  forall ge s T, forever_plus ge s T -> forever ge s T.
+Proof.
+  cofix COINDHYP; intros.
+  destruct (forever_plus_inv H) as [s' [t [T' [P [Q R]]]]].
+  subst. econstructor; eauto.
+Qed.
 
-(* (** Infinitely many silent transitions *) *)
+(** Infinitely many silent transitions *)
 
-(* CoInductive forever_silent (ge: genv): state -> Prop := *)
-(*   | forever_silent_intro: forall s1 s2, *)
-(*       step ge s1 E0 s2 -> forever_silent ge s2 -> *)
-(*       forever_silent ge s1. *)
+CoInductive forever_silent (ge: genv): state -> Prop :=
+  | forever_silent_intro: forall s1 s2,
+      step ge s1 E0 s2 -> forever_silent ge s2 ->
+      forever_silent ge s1.
 
 (** An alternate definition. *)
 
-(* CoInductive forever_silent_N (ge: genv) : A -> state -> Prop := *)
-(*   | forever_silent_N_star: forall s1 s2 a1 a2, *)
-(*       star ge s1 E0 s2 -> *)
-(*       order a2 a1 -> *)
-(*       forever_silent_N ge a2 s2 -> *)
-(*       forever_silent_N ge a1 s1 *)
-(*   | forever_silent_N_plus: forall s1 s2 a1 a2, *)
-(*       plus ge s1 E0 s2 -> *)
-(*       forever_silent_N ge a2 s2 -> *)
-(*       forever_silent_N ge a1 s1. *)
+CoInductive forever_silent_N (ge: genv) : A -> state -> Prop :=
+  | forever_silent_N_star: forall s1 s2 a1 a2,
+      star ge s1 E0 s2 ->
+      order a2 a1 ->
+      forever_silent_N ge a2 s2 ->
+      forever_silent_N ge a1 s1
+  | forever_silent_N_plus: forall s1 s2 a1 a2,
+      plus ge s1 E0 s2 ->
+      forever_silent_N ge a2 s2 ->
+      forever_silent_N ge a1 s1.
 
-(* Lemma forever_silent_N_inv: *)
-(*   forall ge a s, *)
-(*   forever_silent_N ge a s -> *)
-(*   exists s', exists a', *)
-(*   step ge s E0 s' /\ forever_silent_N ge a' s'. *)
-(* Proof. *)
-(*   intros ge a0. pattern a0. apply (well_founded_ind order_wf). *)
-(*   intros. inv H0. *)
-(*   (* star case *) *)
-(*   inv H1. *)
-(*   (* no transition *) *)
-(*   apply H with a2. auto. auto. *)
-(*   (* at least one transition *) *)
-(*   exploit Eapp_E0_inv; eauto. intros [P Q]. subst. *)
-(*   exists s0; exists x. *)
-(*   split. auto. eapply forever_silent_N_star; eauto. *)
-(*   (* plus case *) *)
-(*   inv H1. exploit Eapp_E0_inv; eauto. intros [P Q]. subst. *)
-(*   exists s0; exists a2. *)
-(*   split. auto. inv H3. auto. *)
-(*   eapply forever_silent_N_plus. econstructor; eauto. eauto. *)
-(* Qed. *)
+Lemma forever_silent_N_inv:
+  forall ge a s,
+  forever_silent_N ge a s ->
+  exists s', exists a',
+  step ge s E0 s' /\ forever_silent_N ge a' s'.
+Proof.
+  intros ge a0. pattern a0. apply (well_founded_ind order_wf).
+  intros. inv H0.
+  (* star case *)
+  inv H1.
+  (* no transition *)
+  apply H with a2. auto. auto.
+  (* at least one transition *)
+  exploit Eapp_E0_inv; eauto. intros [P Q]. subst.
+  exists s0; exists x.
+  split. auto. eapply forever_silent_N_star; eauto.
+  (* plus case *)
+  inv H1. exploit Eapp_E0_inv; eauto. intros [P Q]. subst.
+  exists s0; exists a2.
+  split. auto. inv H3. auto.
+  eapply forever_silent_N_plus. econstructor; eauto. eauto.
+Qed.
 
-(* Lemma forever_silent_N_forever: *)
-(*   forall ge a s, forever_silent_N ge a s -> forever_silent ge s. *)
-(* Proof. *)
-(*   cofix COINDHYP; intros. *)
-(*   destruct (forever_silent_N_inv H) as [s' [a' [P Q]]]. *)
-(*   apply forever_silent_intro with s'. auto. *)
-(*   apply COINDHYP with a'; auto. *)
-(* Qed. *)
+Lemma forever_silent_N_forever:
+  forall ge a s, forever_silent_N ge a s -> forever_silent ge s.
+Proof.
+  cofix COINDHYP; intros.
+  destruct (forever_silent_N_inv H) as [s' [a' [P Q]]].
+  apply forever_silent_intro with s'. auto.
+  apply COINDHYP with a'; auto.
+Qed.
 
 (** Infinitely many non-silent transitions *)
 
-(* CoInductive forever_reactive (ge: genv): state -> traceinf -> Prop := *)
-(*   | forever_reactive_intro: forall s1 s2 t T, *)
-(*       star ge s1 t s2 -> t <> E0 -> forever_reactive ge s2 T -> *)
-(*       forever_reactive ge s1 (t *** T). *)
+CoInductive forever_reactive (ge: genv): state -> traceinf -> Prop :=
+  | forever_reactive_intro: forall s1 s2 t T,
+      star ge s1 t s2 -> t <> E0 -> forever_reactive ge s2 T ->
+      forever_reactive ge s1 (t *** T).
 
-(* Lemma star_forever_reactive: *)
-(*   forall ge s1 t s2 T, *)
-(*   star ge s1 t s2 -> forever_reactive ge s2 T -> *)
-(*   forever_reactive ge s1 (t *** T). *)
-(* Proof. *)
-(*   intros. inv H0. rewrite <- Eappinf_assoc. econstructor. *)
-(*   eapply star_trans; eauto. *)
-(*   red; intro. exploit Eapp_E0_inv; eauto. intros [P Q]. contradiction. *)
-(*   auto. *)
-(* Qed. *)
+Lemma star_forever_reactive:
+  forall ge s1 t s2 T,
+  star ge s1 t s2 -> forever_reactive ge s2 T ->
+  forever_reactive ge s1 (t *** T).
+Proof.
+  intros. inv H0. rewrite <- Eappinf_assoc. econstructor.
+  eapply star_trans; eauto.
+  red; intro. exploit Eapp_E0_inv; eauto. intros [P Q]. contradiction.
+  auto.
+Qed.
 
 End CLOSURES.
 
@@ -508,8 +508,8 @@ Definition Semantics {state funtype vartype: Type}
 Notation " 'Step' L " := (step L (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope.
 Notation " 'Star' L " := (star (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope.
 Notation " 'Plus' L " := (plus (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope.
-(* Notation " 'Forever_silent' L " := (forever_silent (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope. *)
-(* Notation " 'Forever_reactive' L " := (forever_reactive (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope. *)
+Notation " 'Forever_silent' L " := (forever_silent (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope.
+Notation " 'Forever_reactive' L " := (forever_reactive (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope.
 Notation " 'Nostep' L " := (nostep (step L) (symbolenv L) (globalenv L)) (at level 1) : smallstep_scope.
 
 Open Scope smallstep_scope.
@@ -757,32 +757,32 @@ Proof.
   eapply t_trans; eauto.
 Qed.
 
-(* Lemma simulation_forever_silent: *)
-(*   forall i s1 s2, *)
-(*   Forever_silent L1 s1 -> match_states i s1 s2 -> *)
-(*   Forever_silent L2 s2. *)
-(* Proof. *)
-(*   assert (forall i s1 s2, *)
-(*           Forever_silent L1 s1 -> match_states i s1 s2 -> *)
-(*           forever_silent_N (step L2) (symbolenv L2) order (globalenv L2) i s2). *)
-(*     cofix COINDHYP; intros. *)
-(*     inv H. destruct (fsim_simulation S _ _ _ H1 _ _ H0) as [i' [s2' [A B]]]. *)
-(*     destruct A as [C | [C D]]. *)
-(*     eapply forever_silent_N_plus; eauto. *)
-(*     eapply forever_silent_N_star; eauto. *)
-(*   intros. eapply forever_silent_N_forever; eauto. eapply fsim_order_wf; eauto. *)
-(* Qed. *)
+Lemma simulation_forever_silent:
+  forall i s1 s2,
+  Forever_silent L1 s1 -> match_states i s1 s2 ->
+  Forever_silent L2 s2.
+Proof.
+  assert (forall i s1 s2,
+          Forever_silent L1 s1 -> match_states i s1 s2 ->
+          forever_silent_N (step L2) (symbolenv L2) order (globalenv L2) i s2).
+    cofix COINDHYP; intros.
+    inv H. destruct (fsim_simulation S _ _ _ H1 _ _ H0) as [i' [s2' [A B]]].
+    destruct A as [C | [C D]].
+    eapply forever_silent_N_plus; eauto.
+    eapply forever_silent_N_star; eauto.
+  intros. eapply forever_silent_N_forever; eauto. eapply fsim_order_wf; eauto.
+Qed.
 
-(* Lemma simulation_forever_reactive: *)
-(*   forall i s1 s2 T, *)
-(*   Forever_reactive L1 s1 T -> match_states i s1 s2 -> *)
-(*   Forever_reactive L2 s2 T. *)
-(* Proof. *)
-(*   cofix COINDHYP; intros. *)
-(*   inv H. *)
-(*   edestruct simulation_star as [i' [st2' [A B]]]; eauto. *)
-(*   econstructor; eauto. *)
-(* Qed. *)
+Lemma simulation_forever_reactive:
+  forall i s1 s2 T,
+  Forever_reactive L1 s1 T -> match_states i s1 s2 ->
+  Forever_reactive L2 s2 T.
+Proof.
+  cofix COINDHYP; intros.
+  inv H.
+  edestruct simulation_star as [i' [st2' [A B]]]; eauto.
+  econstructor; eauto.
+Qed.
 
 End SIMULATION_SEQUENCES.
 
@@ -1628,7 +1628,7 @@ Proof.
 + (* 2.2 L2 make a non-silent transition *)
   exploit not_silent_length. eapply (sr_traces L1_receptive); eauto. intros [EQ | EQ].
   congruence.
-  subst. rewrite E0_right in *.
+  subst. rewrite E0_right in H.
   (* Use receptiveness to equate the traces *)
   exploit (sr_receptive L1_receptive); eauto. intros [s1''' STEP1].
   exploit fsim_simulation_not_E0. eexact STEP1. auto. eauto.

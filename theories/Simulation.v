@@ -959,7 +959,7 @@ Proof.
       assert(RECEPTIVE : receptive_at mt L1 st_src0).
       { exploit H3; eauto. i; des; clarify. }
       exploit not_silent_length. eapply (sr_traces_at RECEPTIVE); eauto. intros [EQ | EQ]. congruence.
-      subst. rewrite E0_right in *.
+      subst. rewrite E0_right in H.
       (* Use receptiveness to equate the traces *)
       exploit (sr_receptive_at RECEPTIVE); eauto. intros [s1''' STEP1].
       exploit xsim_simulation_not_E0. eexact STEP1. auto. eauto.

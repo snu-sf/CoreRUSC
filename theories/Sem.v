@@ -10,8 +10,8 @@ Require Import Smallstep.
 Require Import LinkingC.
 Require Import CoqlibC.
 
-Require Import ModSem Mod.
-Require Export Syntax System.
+Require Import ModSem Mod System.
+Require Export Syntax.
 
 Set Implicit Arguments.
 
