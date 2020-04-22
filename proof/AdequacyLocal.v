@@ -39,55 +39,27 @@ Section SIMGE.
       (SETGT: List.Forall (fun ms => (ModSem.to_semantics ms).(symbolenv) = skenv_link_tgt) ge_tgt):
       sim_ge sm0 (ge_src, skenv_link_src) (ge_tgt, skenv_link_tgt).
 
-  (* Lemma find_fptr_owner_fsim *)
-  (*       sm0 ge_src ge_tgt fptr_src fptr_tgt ms_src *)
-  (*       (SIMGE: sim_ge sm0 ge_src ge_tgt) *)
-  (*       (SIMFPTR: SimMem.sim_val sm0 fptr_src fptr_tgt) *)
-  (*       (FINDSRC: Ge.find_fptr_owner ge_src fptr_src ms_src): *)
-  (*     exists msp, *)
-  (*       <<SRC: msp.(ModSemPair.src) = ms_src>> *)
-  (*       /\ <<FINDTGT: Ge.find_fptr_owner ge_tgt fptr_tgt msp.(ModSemPair.tgt)>> *)
-  (*       /\ <<SIMMS: ModSemPair.sim msp>> *)
-  (*       /\ <<SIMSKENV: ModSemPair.sim_skenv msp sm0>> *)
-  (*       /\ <<MFUTURE: SimMem.future msp.(ModSemPair.sm) sm0>>. *)
-  (* Proof. *)
-  (*   inv SIMGE. *)
-  (*   { inv FINDSRC; ss. } *)
-  (*   rewrite Forall_forall in *. inv FINDSRC. ss. *)
-  (*   rewrite in_map_iff in MODSEM. des. rename x into msp. esplits; eauto. clarify. *)
-  (*   specialize (SIMMSS msp). exploit SIMMSS; eauto. clear SIMMSS. intro SIMMS. *)
-  (*   specialize (SIMSKENV msp). exploit SIMSKENV; eauto. clear SIMSKENV. intro SIMSKENV. *)
-
-  (*   exploit SimSymb.sim_skenv_func_bisim; try apply SIMSKENV. intro SIMFUNC; des. *)
-  (*   inv SIMFUNC. exploit FUNCFSIM; eauto. i; des. clear_tac. inv SIM. econs; eauto. *)
-  (*   apply in_map_iff. esplits; eauto. *)
-
-  (* Qed. *)
-
-  Lemma find_fptr_owner_bsim
-        sm0 ge_src ge_tgt fptr_src fptr_tgt ms_tgt
+  Lemma find_fptr_owner_fsim
+        sm0 ge_src ge_tgt fptr_src fptr_tgt ms_src
         (SIMGE: sim_ge sm0 ge_src ge_tgt)
         (SIMFPTR: SimMem.sim_val sm0 fptr_src fptr_tgt)
-        (FINDTGT: Ge.find_fptr_owner ge_tgt fptr_tgt ms_tgt)
-        (SAFESRC: exists _ms_src, Ge.find_fptr_owner ge_src fptr_src _ms_src)
-    :
+        (FINDSRC: Ge.find_fptr_owner ge_src fptr_src ms_src):
       exists msp,
-        <<TGT: msp.(ModSemPair.tgt) = ms_tgt>>
-        /\ <<FINDSRC: Ge.find_fptr_owner ge_src fptr_src msp.(ModSemPair.src)>>
+        <<SRC: msp.(ModSemPair.src) = ms_src>>
+        /\ <<FINDTGT: Ge.find_fptr_owner ge_tgt fptr_tgt msp.(ModSemPair.tgt)>>
         /\ <<SIMMS: ModSemPair.sim msp>>
         /\ <<SIMSKENV: ModSemPair.sim_skenv msp sm0>>
         /\ <<MFUTURE: SimMem.future msp.(ModSemPair.sm) sm0>>.
   Proof.
     inv SIMGE.
-    { des. inv SAFESRC; ss. }
-    rewrite Forall_forall in *. inv FINDTGT. ss.
+    { inv FINDSRC; ss. }
+    rewrite Forall_forall in *. inv FINDSRC. ss.
     rewrite in_map_iff in MODSEM. des. rename x into msp. esplits; eauto. clarify.
     specialize (SIMMSS msp). exploit SIMMSS; eauto. clear SIMMSS. intro SIMMS.
     specialize (SIMSKENV msp). exploit SIMSKENV; eauto. clear SIMSKENV. intro SIMSKENV.
 
     exploit SimSymb.sim_skenv_sim_skenv_weak; try apply SIMSKENV. intro SIMFUNC; des.
-    inv SIMFUNC. exploit FUNCBSIM; eauto. { admit "". } i; des. clarify. clear_tac.
-    econs; eauto.
+    inv SIMFUNC. exploit FUNCFSIM; eauto. i; des. clear_tac. inv SIM. econs; eauto.
     apply in_map_iff. esplits; eauto.
 
   Qed.
@@ -219,7 +191,7 @@ Section SIMGE.
         assert(SIMGE: SimSymb.sim_skenv sm_arg ss_link (System.globalenv (Sk.load_skenv ss_link.(SimSymb.src)))
                                         (System.globalenv (Sk.load_skenv ss_link.(SimSymb.tgt)))).
         { eapply SimSymb.mfuture_preserves_sim_skenv; eauto. }
-        hexpl SimSymb.sim_skenv_func_bisim SIMGE0.
+        dup SIMGE. eapply SimSymb.sim_skenv_sim_skenv_weak in SIMGE0.
         inv SIMGE0. exploit FUNCFSIM; eauto. i; des. clarify.
         esplits; eauto.
         { left. apply plus_one. econs.
@@ -470,7 +442,7 @@ Section ADQINIT.
     - econs; ss; cycle 1.
       { ii. eapply initial_state_determ; ss; eauto. }
       econs; eauto; cycle 1.
-      apply_all_once SimSymb.sim_skenv_func_bisim. des. inv SIMSKENV.
+      apply_all_once SimSymb.sim_skenv_sim_skenv_weak. des. inv SIMSKENV.
       exploit FUNCFSIM; eauto.
       i; des. clarify.
     - econs; eauto.

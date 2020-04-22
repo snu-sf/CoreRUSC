@@ -23,12 +23,16 @@ Module SimSymb.
 
   Inductive sim_skenv_weak (sim_val: val -> val -> Prop) (skenv_src skenv_tgt: SkEnv.t): Prop :=
   | sim_skenv_weak_intro
-      (FUNCBSIM: forall fptr_src fptr_tgt def_tgt
+      (FUNCFSIM: forall fptr_src fptr_tgt def_src
           (SIMFPTR: sim_val fptr_src fptr_tgt)
-          (FUNCTGT: (Genv.find_funct skenv_tgt) fptr_tgt = Some def_tgt)
-          (SAFESRC: fptr_src <> Vundef)
-        ,
-          exists def_src, (<<FUNCSRC: (Genv.find_funct skenv_src) fptr_src = Some def_src>>) /\ (<<SIM: def_src = def_tgt>>))
+          (FUNCSRC: (Genv.find_funct skenv_src) fptr_src = Some def_src),
+          exists def_tgt, <<FUNCSRC: (Genv.find_funct skenv_tgt) fptr_tgt = Some def_tgt>> /\ <<SIM: def_src = def_tgt>>)
+      (* (FUNCBSIM: forall fptr_src fptr_tgt def_tgt *)
+      (*     (SIMFPTR: sim_val fptr_src fptr_tgt) *)
+      (*     (FUNCTGT: (Genv.find_funct skenv_tgt) fptr_tgt = Some def_tgt) *)
+      (*     (SAFESRC: fptr_src <> Vundef) *)
+      (*   , *)
+      (*     exists def_src, (<<FUNCSRC: (Genv.find_funct skenv_src) fptr_src = Some def_src>>) /\ (<<SIM: def_src = def_tgt>>)) *)
   .
 
   Class class (SM: SimMem.class) :=

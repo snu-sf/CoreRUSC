@@ -60,6 +60,140 @@ Qed.
 
 
 
+Module AUX.
+
+  Inductive find_fptr_owner (mss: list ModSem.t) (fptr: val) (ms: ModSem.t): Prop :=
+  | find_fptr_owner_intro
+      (MODSEM: In ms mss)
+      if_sig
+      (INTERNAL: Genv.find_funct ms.(ModSem.skenv) fptr = Some (Internal if_sig))
+  .
+
+  Definition disj: Sk.t -> Sk.t -> Prop := admit "".
+  Lemma link_disj
+        sk0 sk1 sk_link
+        (LINK: link sk0 sk1 = sk_link)
+    :
+      <<DISJ: disj sk0 sk1>>
+  .
+  Proof.
+  Admitted.
+
+  Lemma disj_linkorder
+        sk0 sk1 sk_link
+        (DISJ: disj sk0 sk_link)
+        (LINK: linkorder sk1 sk_link)
+    :
+      <<DISJ: disj sk0 sk1>>
+  .
+  Proof.
+  Admitted.
+
+  Definition skenv_disj (ske0 ske1: SkEnv.t): Prop := forall
+      fptr f0 f1
+      (FINDF: Genv.find_funct ske0 fptr = Some (Internal f0))
+      (FINDF: Genv.find_funct ske1 fptr = Some (Internal f1))
+    ,
+      False
+  .
+
+  Lemma disj_skenv_disj
+        sk0 sk1 ske0 ske1 ske_link
+        (DISJ: disj sk0 sk1)
+        (LOAD0: SkEnv.project ske_link sk0 = ske0)
+        (LOAD1: SkEnv.project ske_link sk1 = ske1)
+    :
+      (<<DISJ: skenv_disj ske0 ske1>>)
+  .
+  Proof.
+  Admitted.
+
+  Lemma find_fptr_owner_determ
+        mss fptr ms0 ms1
+        (DISJ: skenv_disj ms0.(ModSem.skenv) ms1.(ModSem.skenv))
+        (FIND0: find_fptr_owner mss fptr ms0)
+        (FIND1: find_fptr_owner mss fptr ms1):
+      ms0 = ms1.
+  Proof.
+    inv FIND0. inv FIND1. rr in DISJ. exploit DISJ; et. i; des. clarify.
+  Qed.
+
+  Require Import RelationClasses Morphisms.
+  Require Import Relation_Operators.
+  Require Import Relations.
+  Local Open Scope signature_scope.
+
+  Lemma ForallOrdPairs_map
+        X Y (f: X -> Y) rx ry xs
+        (DISJ: ForallOrdPairs rx xs)
+        (RESPECTFUL: (rx ==> ry) f f)
+    :
+      <<DISJ: ForallOrdPairs ry (map f xs)>>
+  .
+  Proof.
+    ginduction xs; ii; ss.
+    { econs; et. }
+    inv DISJ.
+    econs; et.
+    - rewrite Forall_forall in *. ii. rewrite in_map_iff in *. des. clarify. et.
+    - eapply IHxs; et.
+  Qed.
+
+  Definition mod_disj (md0 md1: Mod.t): Prop := disj (Mod.sk md0) (Mod.sk md1).
+  Definition modsem_disj (ms0 ms1: ModSem.t): Prop := skenv_disj (ModSem.skenv ms0) (ModSem.skenv ms1).
+  Lemma modsem_respects_disj: forall skenv,
+      (mod_disj ==> modsem_disj) (flip Mod.modsem skenv) (flip Mod.modsem skenv).
+  Proof.
+  Admitted.
+
+  Lemma link_sk_disjoint
+        p sk_link
+        (LINK: link_sk p = Some sk_link)
+    :
+      <<DISJ: ForallOrdPairs mod_disj p>>
+  .
+  Proof.
+    ginduction p; ii; ss.
+    unfold link_sk in *. ss.
+    destruct (classic (p = [])).
+    { clarify; ss. econs; et. econs; et. }
+    exploit link_list_cons_inv; et.
+    { destruct p; ss. }
+    i; des.
+    exploit IHp; et. intro T; des.
+    econs 2; et.
+    rewrite Forall_forall. i. r.
+    eapply link_disj in HD.
+    eapply disj_linkorder; et. exploit link_list_linkorder; et. intro U; des.
+    rewrite Forall_forall in *. eapply U. rewrite in_map_iff; et.
+  Qed.
+
+  Lemma find_fptr_owner_determ_link
+        p sk_link skenv_link fptr ms0 ms1
+        (LINK: link_sk p = Some sk_link)
+        (LOAD: Sk.load_skenv sk_link = skenv_link)
+        (FIND0: Ge.find_fptr_owner (load_genv p skenv_link) fptr ms0)
+        (FIND1: Ge.find_fptr_owner (load_genv p skenv_link) fptr ms1)
+    :
+      ms0 = ms1.
+  Proof.
+    inv FIND0. inv FIND1.
+    exploit link_sk_disjoint; et. intro T; des.
+    set (skenv_link := (Sk.load_skenv sk_link)) in *.
+    eapply (@ForallOrdPairs_map Mod.t ModSem.t (fun md => Mod.modsem md skenv_link)) in T; cycle 1.
+    { eapply modsem_respects_disj; et. }
+    assert(U: ForallOrdPairs modsem_disj (fst (load_genv p skenv_link))).
+    { econs; et. rewrite Forall_forall.
+      ii. ss. unfold System.skenv in *. admit "genv_map_defs".
+    }
+    clear T.
+    exploit ForallOrdPairs_In; [|apply MODSEM|apply MODSEM0|..]; et. ii; des; clarify.
+    - rr in H. exploit H; et. i; clarify.
+    - rr in H. exploit H; et. i; clarify.
+  Qed.
+
+End AUX.
+
 Section INITDTM.
 
   Context `{SM: SimMem.class}.
@@ -67,6 +201,17 @@ Section INITDTM.
   Variable p: program.
   Hypothesis (WFSK: forall md (IN: In md p), <<WF: Sk.wf md>>).
   Let sem := Sem.sem p.
+
+  Lemma find_fptr_owner_determ
+        fptr ms0 ms1
+        (FIND0: Ge.find_fptr_owner sem.(globalenv) fptr ms0)
+        (FIND1: Ge.find_fptr_owner sem.(globalenv) fptr ms1):
+      ms0 = ms1.
+  Proof.
+    ss. des_ifs; cycle 1.
+    { inv FIND0; ss. }
+    eapply AUX.find_fptr_owner_determ_link; et.
+  Qed.
 
   Theorem initial_state_determ
           st_init0 st_init1
