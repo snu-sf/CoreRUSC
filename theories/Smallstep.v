@@ -754,7 +754,7 @@ Proof.
   exploit IHplus; eauto. intros [[i'' [s2'' [P Q]]] | [i'' [P [Q R]]]].
   subst. simpl. left; exists i''; exists s2''; auto.
   subst. simpl. right; exists i''; intuition auto.
-  eapply t_trans; eauto. eapply t_step; eauto.
+  eapply t_trans; eauto.
 Qed.
 
 (* Lemma simulation_forever_silent: *)
@@ -1247,7 +1247,7 @@ Proof.
   left; exists i''; exists s1''; intuition. eapply plus_star_trans; eauto.
 + exploit IHplus; eauto. intros [P | [i'' [P Q]]].
   left; auto.
-  right; exists i''; intuition. eapply t_trans; eauto. apply t_step; auto.
+  right; exists i''; intuition. eapply t_trans; eauto.
 Qed.
 
 Lemma star_non_E0_split:

@@ -1,5 +1,6 @@
 Require Import sflib.
 Require Import List.
+Require Import LinkingC.
 
 Set Implicit Arguments.
 
@@ -22,6 +23,25 @@ Module AST.
 
 End AST.
 
+Module Values.
+  Class class: Type := {
+    val: Type;
+    Vundef: val;
+  }
+  .
+End Values.
+
+Export Values.
+
+Module Mem.
+  Class class: Type := {
+    t: Type;
+    empty: t;
+  }
+  .
+End Mem.
+Definition mem `{Mem.class}: Type := Mem.t.
+
 Module Senv.
   Class class `{AST.class}: Type := {
     t: Type;
@@ -31,9 +51,10 @@ Module Senv.
 End Senv.
 
 Module Genv.
-  Class class `{Senv.class}: Type := {
+  Class class `{Values.class} `{Senv.class}: Type := {
     t: Type -> Type -> Type;
     to_senv: forall {F V}, (t F V) -> Senv.t;
+    find_funct: forall {F V}, (t F V) -> val -> option F;
   }
   .
 End Genv.
@@ -41,18 +62,31 @@ Coercion Genv.to_senv: Genv.t >-> Senv.t.
 
 Export AST.
 
+Module Sk.
+  Class class: Type := {
+    t: Type;
+    Linker:> Linker t;
+  }
+  .
+End Sk.
+
 Module SkEnv.
-  Section SkEnv.
-    Context `{Genv.class}.
-    Definition t: Type := Genv.t (fundef signature) unit.
-    Definition to_senv: SkEnv.t -> Senv.t := Genv.to_senv.
-  End SkEnv.
+  Class class `{Sk.class} `{Genv.class}: Type := {
+    t: Type := Genv.t (fundef signature) unit;
+    to_senv: t -> Senv.t := Genv.to_senv;
+    project: t -> Sk.t -> t;
+    project_spec: t -> Sk.t -> t -> Prop;
+    includes: t -> Sk.t -> Prop;
+    project_impl_spec: forall skenv sk (INCL: includes skenv sk),
+        <<PROJ: project_spec skenv sk (project skenv sk)>>
+  }
+  .
 End SkEnv.
 
 Coercion SkEnv.to_senv: SkEnv.t >-> Senv.t.
 
 Module Events.
-  Class class `{Senv.class}: Type := {
+  Class class `{Values.class} `{Mem.class} `{Senv.class}: Type := {
     event: Type;
     trace := list event;
     Eapp: trace -> trace -> trace := @app _;
@@ -74,19 +108,26 @@ Module Events.
       ,
         forall t1 t2, match_traces ge1 t1 t2 -> match_traces ge2 t1 t2
     ;
+    extcall_sem := Senv.t -> list val -> mem -> trace -> val -> mem -> Prop;
+    external_call: external_function -> extcall_sem;
+    external_call_receptive: forall (sem: extcall_sem) ge vargs m t1 vres1 m1 t2,
+        sem ge vargs m t1 vres1 m1 -> match_traces ge t1 t2 ->
+        exists vres2, exists m2, sem ge vargs m t2 vres2 m2;
+    external_call_deterministic: forall (sem: extcall_sem) ge vargs m t1 vres1 m1 t2 vres2 m2,
+        sem ge vargs m t1 vres1 m1 -> sem ge vargs m t2 vres2 m2 ->
+        match_traces ge t1 t2 /\ (t1 = t2 -> vres1 = vres2 /\ m1 = m2);
+    external_call_trace_length: forall (sem: extcall_sem) ge vargs m t vres m',
+        sem ge vargs m t vres m' -> (length t <= 1)%nat;
+    external_call_match_traces: forall ef ge vargs m t1 vres1 m1 t2 vres2 m2,
+        external_call ef ge vargs m t1 vres1 m1 ->
+        external_call ef ge vargs m t2 vres2 m2 ->
+        match_traces ge t1 t2;
   }
   .
 End Events.
 
 Export Events.
 
-Module Mem.
-  Class class: Type := {
-    t: Type;
-    empty: t;
-  }
-  .
-End Mem.
 
 
 
@@ -94,15 +135,15 @@ End Mem.
 
 Class PARAMETERS: Type := {
   Mem_class:> Mem.class;
+  Values_class:> Values.class;
   AST_class:> AST.class;
   Senv_class:> Senv.class;
   Genv_class:> Genv.class;
   Events_class:> Events.class;
-  val: Type;
-  Vundef: val;
+  Sk_class:> Sk.class;
+  SkEnv_class:> SkEnv.class;
   regs: Type;
   PC: regs;
-  mem := Mem.t;
   regset := regs -> val;
   int: Type;
 }

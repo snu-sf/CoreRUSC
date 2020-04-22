@@ -7,11 +7,8 @@ Require Import Parameters.
 Require Import Smallstep.
 (* Require Import sflib. *)
 (* Require Import Skeleton. *)
-(* Require Import CoqlibC. *)
+Require Import CoqlibC.
 (* Require Asm. *)
-
-From Paco Require Import paco.
-Require Import sflib.
 
 Set Implicit Arguments.
 
