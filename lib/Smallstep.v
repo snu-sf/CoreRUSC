@@ -25,6 +25,7 @@ Require Import UNIVERSE.
 Require Import Relations.
 Require Import Wellfounded.
 Require Import Coqlib.
+Require Import Events.
 (* Require Import Events. *)
 (* Require Import Globalenvs. *)
 (* Require Import Integers. *)

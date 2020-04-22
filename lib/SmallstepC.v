@@ -3,6 +3,7 @@ Require Import Relations.
 Require Import Wellfounded.
 Require Import CoqlibC.
 Require Import AxiomsC.
+Require Import Events.
 (** newly added **)
 Require Export Smallstep.
 

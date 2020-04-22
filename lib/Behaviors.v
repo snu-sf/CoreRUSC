@@ -20,6 +20,7 @@ Require Import Classical.
 Require Import ClassicalEpsilon.
 Require Import Coqlib.
 Require Import Smallstep.
+Require Import Events.
 
 Set Implicit Arguments.
 

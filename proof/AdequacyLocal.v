@@ -1,4 +1,5 @@
 Require Import UNIVERSE.
+Require Import Events.
 Require Import CoqlibC.
 Require Import Simulation.
 Require Import LinkingC.

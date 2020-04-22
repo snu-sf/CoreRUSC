@@ -1,4 +1,5 @@
 Require Import UNIVERSE.
+Require Import Events.
 Require Export Smallstep.
 Require Import CoqlibC.
 Require Import Axioms.
