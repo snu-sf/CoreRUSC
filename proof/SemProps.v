@@ -1,4 +1,4 @@
-Require Import Parameters.
+Require Import UNIVERSE.
 Require Import CoqlibC.
 Require Import LinkingC.
 Require Import JMeq.
@@ -62,77 +62,11 @@ Qed.
 
 Section INITDTM.
 
- (* Lemma link_sk_disjoint *)
- (*        md0 md1 p0 id skenv_link b if_sig if_sig0 restl sk_link gd_big0 *)
- (*        (IN : In md0 p0) *)
- (*        (NOTSAME : md0 <> md1) *)
- (*        (DEFS1 : defs (Mod.get_sk md1 (Mod.data md1)) id) *)
- (*        (DEFS0 : defs (Mod.get_sk md0 (Mod.data md0)) id) *)
- (*        (DEFBIG0 : Genv.find_def skenv_link b = Some gd_big0) *)
- (*        (SYMBBIG0 : Genv.find_symbol skenv_link id = Some b) *)
- (*        (WFBIG : SkEnv.wf skenv_link) *)
- (*        (DEF0 : Genv.find_def (ModSem.skenv (Mod.get_modsem md0 skenv_link (Mod.data md0))) b = Some (Gfun (Internal if_sig))) *)
- (*        (DEF1 : Genv.find_def (ModSem.skenv (Mod.get_modsem md1 skenv_link (Mod.data md1))) b = Some (Gfun (Internal if_sig0))) *)
- (*        (INCLS : forall md : Mod.t, md1 = md \/ In md p0 -> SkEnv.includes skenv_link (Mod.get_sk md (Mod.data md))) *)
- (*        (TL : link_list (map (fun md : Mod.t => Mod.get_sk md (Mod.data md)) p0) = Some restl) *)
- (*        (HD : link (Mod.get_sk md1 (Mod.data md1)) restl = Some sk_link) *)
- (*        (SKLINK : link_list (Mod.get_sk md1 (Mod.data md1) :: map (fun md : Mod.t => Mod.get_sk md (Mod.data md)) p0) = Some sk_link) *)
- (*        (TLORD : Forall (fun x : Sk.t => linkorder x restl) (map (fun md : Mod.t => Mod.get_sk md (Mod.data md)) p0)) *)
- (*        (HDORD : linkorder (Mod.get_sk md1 (Mod.data md1)) sk_link) *)
- (*        (HDORD0 : linkorder restl sk_link): *)
- (*      False. *)
- (*  Proof. *)
- (*    rewrite <- Mod.get_modsem_skenv_spec in *. rewrite Forall_forall in TLORD. *)
- (*    assert (In (Mod.get_sk md0 (Mod.data md0)) (map (fun md : Mod.t => Mod.get_sk md (Mod.data md)) p0)). *)
- (*    { rewrite in_map_iff. exists md0. auto. } *)
- (*    assert (linkorder (Mod.get_sk md0 (Mod.data md0)) restl). *)
- (*    { exploit TLORD; eauto. } *)
- (*    Local Transparent Linker_prog. *)
-
- (*    exploit INCLS; eauto. intros INCL0. inversion WFBIG. *)
- (*    exploit DEFSYMB; eauto. i. des. *)
- (*    exploit SkEnv.project_impl_spec; eauto. i. inv H2. *)
- (*    exploit SYMBKEEP; eauto. i. *)
-
- (*    assert (INTERN0: exists int_sig, Maps.PTree.get id (prog_defmap (Mod.get_sk md0 (Mod.data md0))) = Some (Gfun (Internal int_sig))). *)
- (*    { rewrite SYMBBIG0 in H2. exploit DEFKEPT. eapply Genv.find_invert_symbol. eapply SYMBBIG0. eauto. i. des. eauto. } des. *)
-
- (*    exploit (@prog_defmap_linkorder (fundef signature) unit). eapply H0. *)
- (*    instantiate (2:=id). *)
- (*    eauto. i. des. *)
-
- (*    exploit INCLS. instantiate (1:=md1). auto. intros INCL1. *)
- (*    exploit SkEnv.project_impl_spec; eauto. i. inv H5. *)
- (*    exploit SYMBKEEP; eauto. i. *)
-
- (*    assert (INTERN1: exists int_sig, Maps.PTree.get id (prog_defmap (Mod.get_sk md1 (Mod.data md1))) = Some (Gfun (Internal int_sig))). *)
- (*    { rewrite SYMBBIG0 in H5. exploit DEFKEPT0. eapply Genv.find_invert_symbol. eapply SYMBBIG0. eauto. i. des. eauto. } des. *)
-
- (*    exploit (@prog_defmap_linkorder (fundef signature) unit). eapply HDORD. *)
- (*    instantiate (2:=id). *)
- (*    eauto. i. des. *)
-
- (*    Local Transparent Linker_def. simpl in *. inv H4. inv H9. Local Transparent Linker_fundef. *)
- (*    simpl in *. inv H7. inv H8. inv HD. unfold link_prog in H7. des_ifs. *)
- (*    symmetry in Heq. eapply andb_true_eq in Heq. des. *)
- (*    symmetry in Heq0. rewrite Maps.PTree_Properties.for_all_correct in Heq0. unfold defs in *. exploit Heq0. eauto. i. *)
- (*    unfold link_prog_check in H8. des_ifs. ss. rewrite andb_false_r in H8. clarify. *)
- (*  Qed. *)
-
   Context `{SM: SimMem.class}.
   Context {SS: SimSymb.class SM}.
   Variable p: program.
   Hypothesis (WFSK: forall md (IN: In md p), <<WF: Sk.wf md>>).
   Let sem := Sem.sem p.
-
-  Lemma find_fptr_owner_determ
-        fptr ms0 ms1
-        (FIND0: Ge.find_fptr_owner sem.(globalenv) fptr ms0)
-        (FIND1: Ge.find_fptr_owner sem.(globalenv) fptr ms1):
-      ms0 = ms1.
-  Proof.
-    admit "".
-  Qed.
 
   Theorem initial_state_determ
           st_init0 st_init1

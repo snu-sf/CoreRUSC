@@ -85,9 +85,13 @@ Module Genv.
     map_defs: forall {F1 V1 F2 V2}, (t F1 V1) -> (globdef F1 V1 -> option (globdef F2 V2)) -> (t F2 V2);
     public_symbol: forall {F V}, (t F V) -> AST.ident -> bool :=
       fun _ _ ge => Senv.public_symbol (to_senv ge);
+    find_funct_some: forall
+        F V (ge: t F V) fptr fd
+        (FINDF: ge.(find_funct) fptr = Some fd)
+      ,
+        (<<FPTR: fptr <> Vundef>>);
   }
   .
-
 End Genv.
 Coercion Genv.to_senv: Genv.t >-> Senv.t.
 
@@ -338,7 +342,7 @@ Export Events.
 (****************************************************************************************)
 (****************************************************************************************)
 
-Class PARAMETERS: Type := {
+Class UNIVERSE: Type := {
   Mem_class:> Mem.class;
   Values_class:> Values.class;
   Asm_class:> Asm.class;
@@ -351,7 +355,7 @@ Class PARAMETERS: Type := {
 }
 .
 
-Context {PRMS: PARAMETERS}.
+Context {UN: UNIVERSE}.
 
 (****************************************************************************************)
 (****************************************************************************************)

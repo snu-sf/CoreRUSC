@@ -1,4 +1,4 @@
-Require Import Parameters.
+Require Import UNIVERSE.
 (* Require Import Events. *)
 (* Require Import ValuesC. *)
 (* Require Import AST. *)
@@ -21,12 +21,15 @@ Set Implicit Arguments.
 
 Module SimSymb.
 
-  Inductive skenv_func_bisim (sim_val: val -> val -> Prop) (skenv_src skenv_tgt: SkEnv.t): Prop :=
-  | skenv_func_bisim_intro
-      (FUNCFSIM: forall fptr_src fptr_tgt def_src
+  Inductive sim_skenv_weak (sim_val: val -> val -> Prop) (skenv_src skenv_tgt: SkEnv.t): Prop :=
+  | sim_skenv_weak_intro
+      (FUNCBSIM: forall fptr_src fptr_tgt def_tgt
           (SIMFPTR: sim_val fptr_src fptr_tgt)
-          (FUNCSRC: (Genv.find_funct skenv_src) fptr_src = Some def_src),
-          exists def_tgt, <<FUNCSRC: (Genv.find_funct skenv_tgt) fptr_tgt = Some def_tgt>> /\ <<SIM: def_src = def_tgt>>).
+          (FUNCTGT: (Genv.find_funct skenv_tgt) fptr_tgt = Some def_tgt)
+          (SAFESRC: fptr_src <> Vundef)
+        ,
+          exists def_src, (<<FUNCSRC: (Genv.find_funct skenv_src) fptr_src = Some def_src>>) /\ (<<SIM: def_src = def_tgt>>))
+  .
 
   Class class (SM: SimMem.class) :=
     { t: Type;
@@ -97,9 +100,8 @@ Module SimSymb.
           (LETGT: SkEnv.project skenv_link_tgt ss.(tgt) = skenv_tgt),
           <<SIMSKENV: sim_skenv sm ss skenv_src skenv_tgt>>;
 
-      sim_skenv_func_bisim: forall sm ss skenv_src skenv_tgt
-          (SIMSKENV: sim_skenv sm ss skenv_src skenv_tgt),
-          <<DEF: skenv_func_bisim sm.(SimMem.sim_val) skenv_src skenv_tgt>>;
+      sim_skenv_sim_skenv_weak: forall sm ss,
+              sim_skenv sm ss <2= sim_skenv_weak sm.(SimMem.sim_val);
 
       system_sim_skenv: forall sm ss skenv_src skenv_tgt
           (SIMSKENV: sim_skenv sm ss skenv_src skenv_tgt),
@@ -143,14 +145,5 @@ Module SimSymb.
     - eapply IHMFUTURE; eauto. eapply mlepriv_preserves_sim_skenv; eauto.
     - eapply IHMFUTURE; eauto. eapply mle_preserves_sim_skenv; eauto.
   Qed.
-
-  Lemma simskenv_func_fsim
-        `{SM: SimMem.class} `{SS: @class SM}
-        ss0 sm0 skd v_src v_tgt skenv_link_src skenv_link_tgt
-        (SIMSKENV: sim_skenv sm0 ss0 skenv_link_src skenv_link_tgt)
-        (SIMV: sm0.(SimMem.sim_val) v_src v_tgt)
-        (FIND: Genv.find_funct skenv_link_src v_src = Some skd):
-      Genv.find_funct skenv_link_tgt v_tgt = Some skd.
-  Proof. exploit SimSymb.sim_skenv_func_bisim; eauto. i; des. inv H. exploit FUNCFSIM; eauto. i; des. clarify. Qed.
 
 End SimSymb.

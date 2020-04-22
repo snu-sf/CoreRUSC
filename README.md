@@ -7,3 +7,5 @@ Coq - 8.10.1 (November 2019)
 Delta:
 - Genv.symbol_address does not take offset arg
 - Genv.map_defs ignore "block"
+- In SimSymb, renamed "skenv_func_bisim" and beautified axiom
+- we use bsim in find_func, not fsim
