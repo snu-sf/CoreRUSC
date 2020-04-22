@@ -69,48 +69,9 @@ Module AUX.
       (INTERNAL: Genv.find_funct ms.(ModSem.skenv) fptr = Some (Internal if_sig))
   .
 
-  Definition disj: Sk.t -> Sk.t -> Prop := admit "".
-  Lemma link_disj
-        sk0 sk1 sk_link
-        (LINK: link sk0 sk1 = sk_link)
-    :
-      <<DISJ: disj sk0 sk1>>
-  .
-  Proof.
-  Admitted.
-
-  Lemma disj_linkorder
-        sk0 sk1 sk_link
-        (DISJ: disj sk0 sk_link)
-        (LINK: linkorder sk1 sk_link)
-    :
-      <<DISJ: disj sk0 sk1>>
-  .
-  Proof.
-  Admitted.
-
-  Definition skenv_disj (ske0 ske1: SkEnv.t): Prop := forall
-      fptr f0 f1
-      (FINDF: Genv.find_funct ske0 fptr = Some (Internal f0))
-      (FINDF: Genv.find_funct ske1 fptr = Some (Internal f1))
-    ,
-      False
-  .
-
-  Lemma disj_skenv_disj
-        sk0 sk1 ske0 ske1 ske_link
-        (DISJ: disj sk0 sk1)
-        (LOAD0: SkEnv.project ske_link sk0 = ske0)
-        (LOAD1: SkEnv.project ske_link sk1 = ske1)
-    :
-      (<<DISJ: skenv_disj ske0 ske1>>)
-  .
-  Proof.
-  Admitted.
-
   Lemma find_fptr_owner_determ
         mss fptr ms0 ms1
-        (DISJ: skenv_disj ms0.(ModSem.skenv) ms1.(ModSem.skenv))
+        (DISJ: SkEnv.disj ms0.(ModSem.skenv) ms1.(ModSem.skenv))
         (FIND0: find_fptr_owner mss fptr ms0)
         (FIND1: find_fptr_owner mss fptr ms1):
       ms0 = ms1.
@@ -139,12 +100,14 @@ Module AUX.
     - eapply IHxs; et.
   Qed.
 
-  Definition mod_disj (md0 md1: Mod.t): Prop := disj (Mod.sk md0) (Mod.sk md1).
-  Definition modsem_disj (ms0 ms1: ModSem.t): Prop := skenv_disj (ModSem.skenv ms0) (ModSem.skenv ms1).
+  Definition mod_disj (md0 md1: Mod.t): Prop := Sk.disj (Mod.sk md0) (Mod.sk md1).
+  Definition modsem_disj (ms0 ms1: ModSem.t): Prop := SkEnv.disj (ModSem.skenv ms0) (ModSem.skenv ms1).
   Lemma modsem_respects_disj: forall skenv,
       (mod_disj ==> modsem_disj) (flip Mod.modsem skenv) (flip Mod.modsem skenv).
   Proof.
-  Admitted.
+    ii. des. unfold Mod.modsem, flip in *. rewrite <- ! Mod.get_modsem_skenv_spec in *.
+    eapply SkEnv.project_respects_disj; et.
+  Qed.
 
   Lemma link_sk_disjoint
         p sk_link
@@ -163,8 +126,8 @@ Module AUX.
     exploit IHp; et. intro T; des.
     econs 2; et.
     rewrite Forall_forall. i. r.
-    eapply link_disj in HD.
-    eapply disj_linkorder; et. exploit link_list_linkorder; et. intro U; des.
+    eapply Sk.link_disj in HD.
+    eapply Sk.disj_linkorder; et. exploit link_list_linkorder; et. intro U; des.
     rewrite Forall_forall in *. eapply U. rewrite in_map_iff; et.
   Qed.
 
@@ -184,7 +147,10 @@ Module AUX.
     { eapply modsem_respects_disj; et. }
     assert(U: ForallOrdPairs modsem_disj (fst (load_genv p skenv_link))).
     { econs; et. rewrite Forall_forall.
-      ii. ss. unfold System.skenv in *. admit "genv_map_defs".
+      ii. ss. unfold System.skenv in *. eapply Genv.map_defs_find_funct in FINDF. des_safe. des_ifs.
+      unfold load_modsems, flip, Mod.modsem in *. rewrite in_map_iff in *. des_safe. ss.
+      rewrite <- Mod.get_modsem_skenv_spec in FINDF0.
+      exploit SkEnv.project_linkorder; et.
     }
     clear T.
     exploit ForallOrdPairs_In; [|apply MODSEM|apply MODSEM0|..]; et. ii; des; clarify.

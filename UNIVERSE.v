@@ -85,13 +85,22 @@ Module Genv.
     map_defs: forall {F1 V1 F2 V2}, (t F1 V1) -> (globdef F1 V1 -> option (globdef F2 V2)) -> (t F2 V2);
     public_symbol: forall {F V}, (t F V) -> AST.ident -> bool :=
       fun _ _ ge => Senv.public_symbol (to_senv ge);
-    find_funct_some: forall
-        F V (ge: t F V) fptr fd
-        (FINDF: ge.(find_funct) fptr = Some fd)
+    map_defs_find_funct: forall
+        F1 V1 F2 V2
+        ge (trans: globdef F1 V1 -> option (globdef F2 V2)) fptr fd0
+        (FINDF: find_funct (map_defs ge trans) fptr = Some fd0)
       ,
-        (<<FPTR: fptr <> Vundef>>);
+        exists fd1, (<<FINDF: find_funct ge fptr = Some fd1>>) /\
+                    (<<MAP: trans (Gfun fd1) = Some (Gfun fd0)>>)
+    ;
+    (* find_funct_some: forall *)
+    (*     F V (ge: t F V) fptr fd *)
+    (*     (FINDF: ge.(find_funct) fptr = Some fd) *)
+    (*   , *)
+    (*     (<<FPTR: fptr <> Vundef>>); *)
   }
   .
+  
 End Genv.
 Coercion Genv.to_senv: Genv.t >-> Senv.t.
 
@@ -111,8 +120,23 @@ Module Sk.
       ,
         (<<WF: wf sk_link>>)
     ;
+    disj: t -> t -> Prop;
+    link_disj: forall 
+        sk0 sk1 sk_link
+        (LINK: link sk0 sk1 = Some sk_link)
+      ,
+        (<<DISJ: disj sk0 sk1>>)
+    ;
+    disj_linkorder: forall
+        sk0 sk1 sk_link
+        (DISJ: disj sk0 sk_link)
+        (LINK: linkorder sk1 sk_link)
+      ,
+        (<<DISJ: disj sk0 sk1>>)
+    ;
   }
   .
+
 End Sk.
 Definition prog_main `{Sk.class} := Sk.prog_main.
 
@@ -151,8 +175,30 @@ Module SkEnv.
         let skenv_link := Sk.load_skenv sk_link in
         <<WFM: forall sk (WF: Sk.wf sk) (LO: linkorder sk sk_link), wf_mem skenv_link sk m_init>>
     ;
+    disj (ske0 ske1: t): Prop := forall
+      fptr f0 f1
+      (FINDF: Genv.find_funct ske0 fptr = Some (Internal f0))
+      (FINDF: Genv.find_funct ske1 fptr = Some (Internal f1))
+    ,
+      False;
+    project_respects_disj: forall
+        sk0 sk1 ske0 ske1 ske_link
+        (DISJ: Sk.disj sk0 sk1)
+        (LOAD0: project ske_link sk0 = ske0)
+        (LOAD1: project ske_link sk1 = ske1)
+      ,
+        (<<DISJ: disj ske0 ske1>>)
+    ;
+    project_linkorder: forall
+        skenv_link fptr sk ef fd
+        (FINDF0: Genv.find_funct skenv_link fptr = Some (External ef))
+        (FINDF1: Genv.find_funct (project skenv_link sk) fptr = Some (Internal fd))
+      ,
+        False
+    ;
   }
   .
+
 End SkEnv.
 
 Coercion SkEnv.to_senv: SkEnv.t >-> Senv.t.
