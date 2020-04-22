@@ -10,8 +10,8 @@ Require Import Smallstep.
 Require Import LinkingC.
 Require Import CoqlibC.
 
-Require Import ModSem Mod System.
-Require Export Syntax.
+Require Import ModSem Mod.
+Require Export Syntax System.
 
 Set Implicit Arguments.
 
@@ -99,7 +99,7 @@ Section SEMANTICS.
   Definition link_sk: option Sk.t := link_list (List.map Mod.sk p).
 
   Definition skenv_fill_internals (skenv: SkEnv.t): SkEnv.t :=
-    (Genv_map_defs skenv) (fun _ gd => Some
+    (Genv.map_defs skenv) (fun gd => Some
                                       match gd with
                                       | Gfun (External ef) => (Gfun (Internal (ef_sig ef)))
                                       | Gfun _ => gd
@@ -122,7 +122,7 @@ Section SEMANTICS.
       (INITSK: link_sk = Some sk_link)
       (INITSKENV: (Sk.load_skenv sk_link) = skenv_link)
       (INITMEM: (Sk.load_mem sk_link) = Some m_init)
-      (FPTR: fptr_init = (Genv.symbol_address skenv_link sk_link.(prog_main) Ptrofs.zero))
+      (FPTR: fptr_init = (Genv.symbol_address skenv_link (prog_main sk_link)))
       (SIG: (Genv.find_funct skenv_link) fptr_init = Some (Internal signature_main))
       (WF: forall md (IN: In md p), <<WF: Sk.wf md>>):
       initial_state (Callstate (Args.mk fptr_init [] m_init) []).

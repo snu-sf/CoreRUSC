@@ -10,7 +10,10 @@ Module AST.
   Class class: Type := {
     ident: Type;
     signature: Type;
+    signature_main: signature;
     external_function: Type;
+    ef_sig: external_function -> signature;
+    globvar: Type -> Type
   }
   .
 
@@ -19,19 +22,41 @@ Module AST.
     Inductive fundef (F: Type): Type :=
     | Internal: F -> fundef F
     | External: external_function -> fundef F.
+
+    Inductive globdef (F V : Type) : Type :=
+    | Gfun : F -> globdef F V
+    | Gvar : globvar V -> globdef F V
+    .
+
   End AST.
 
 End AST.
+Export AST.
+
+Arguments Internal {_} [_].
+Arguments External {_} [_].
+Arguments Gfun {_} [_] [_].
+Arguments Gvar {_} [_] [_].
 
 Module Values.
   Class class: Type := {
     val: Type;
     Vundef: val;
+    int: Type;
+    Vint: int -> val;
   }
   .
 End Values.
-
 Export Values.
+
+Module Asm.
+  Class class `{Values.class}: Type := {
+    regs: Type;
+    PC: regs;
+    regset := regs -> val;
+  }
+  .
+End Asm.
 
 Module Mem.
   Class class: Type := {
@@ -51,34 +76,45 @@ Module Senv.
 End Senv.
 
 Module Genv.
-  Class class `{Values.class} `{Senv.class}: Type := {
+  Class class `{AST.class} `{Values.class} `{Senv.class}: Type := {
     t: Type -> Type -> Type;
     to_senv: forall {F V}, (t F V) -> Senv.t;
     find_funct: forall {F V}, (t F V) -> val -> option F;
+    symbol_address: forall {F V}, (t F V) -> ident -> val;
+    map_defs: forall {F1 V1 F2 V2}, (t F1 V1) -> (globdef F1 V1 -> option (globdef F2 V2)) -> (t F2 V2);
+    public_symbol: forall {F V}, (t F V) -> AST.ident -> bool :=
+      fun _ _ ge => Senv.public_symbol (to_senv ge);
   }
   .
+
 End Genv.
 Coercion Genv.to_senv: Genv.t >-> Senv.t.
 
-Export AST.
-
 Module Sk.
-  Class class: Type := {
+  Class class `{Genv.class} `{AST.class} `{Mem.class}: Type := {
     t: Type;
+    prog_main: t -> ident;
+    wf: t -> Prop;
     Linker:> Linker t;
+    load_skenv: t -> Genv.t (fundef signature) unit;
+    load_mem: t -> option mem;
   }
   .
 End Sk.
+Definition prog_main `{Sk.class} := Sk.prog_main.
 
 Module SkEnv.
   Class class `{Sk.class} `{Genv.class}: Type := {
     t: Type := Genv.t (fundef signature) unit;
+    wf: t -> Prop;
+    wf_mem: t -> Sk.t -> mem -> Prop;
     to_senv: t -> Senv.t := Genv.to_senv;
     project: t -> Sk.t -> t;
     project_spec: t -> Sk.t -> t -> Prop;
     includes: t -> Sk.t -> Prop;
     project_impl_spec: forall skenv sk (INCL: includes skenv sk),
-        <<PROJ: project_spec skenv sk (project skenv sk)>>
+        <<PROJ: project_spec skenv sk (project skenv sk)>>;
+    empty: t;
   }
   .
 End SkEnv.
@@ -136,16 +172,13 @@ Export Events.
 Class PARAMETERS: Type := {
   Mem_class:> Mem.class;
   Values_class:> Values.class;
+  Asm_class:> Asm.class;
   AST_class:> AST.class;
   Senv_class:> Senv.class;
   Genv_class:> Genv.class;
   Events_class:> Events.class;
   Sk_class:> Sk.class;
   SkEnv_class:> SkEnv.class;
-  regs: Type;
-  PC: regs;
-  regset := regs -> val;
-  int: Type;
 }
 .
 

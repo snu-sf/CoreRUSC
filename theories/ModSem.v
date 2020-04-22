@@ -21,14 +21,14 @@ Module Args.
       (vs: list val)
       (m: mem)
   | Asmstyle
-      (rs: regset)
+      (rs: Asm.regset)
       (m: mem).
 
   (* intentional: it should work for both cases *)
   Definition get_fptr (args: Args.t): val :=
     match args with
     | Args.Cstyle fptr _ _ => fptr
-    | Args.Asmstyle rs _ => rs PC
+    | Args.Asmstyle rs _ => rs Asm.PC
     end
   .
 
@@ -88,7 +88,7 @@ Module Retv.
       (v: val)
       (m: mem)
   | Asmstyle
-      (rs: regset)
+      (rs: Asm.regset)
       (m: mem).
 
   (* intentional: it should work for both cases *)
@@ -172,13 +172,13 @@ Module ModSem.
     call_return_disjoint: is_call /1\ is_return <1= bot1;
   }.
 
-  (* Ltac tac := *)
-  (*   try( let TAC := u; esplits; eauto in *)
-  (*        u in *; des_safe; *)
-  (*        first[ exfalso; eapply ModSem.call_step_disjoint; TAC; fail *)
-  (*             | exfalso; eapply ModSem.step_return_disjoint; TAC; fail *)
-  (*             | exfalso; eapply ModSem.call_return_disjoint; TAC; fail] *)
-  (*      ). *)
+  Ltac tac :=
+    try( let TAC := u; esplits; eauto in
+         u in *; des_safe;
+         first[ exfalso; eapply ModSem.call_step_disjoint; TAC; fail
+              | exfalso; eapply ModSem.step_return_disjoint; TAC; fail
+              | exfalso; eapply ModSem.call_return_disjoint; TAC; fail]
+       ).
 
   Definition to_semantics (ms: t) :=
     (Semantics_gen ms.(step) bot1 bot2 ms.(globalenv) ms.(skenv_link)).
