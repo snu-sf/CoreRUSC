@@ -13,7 +13,6 @@ Module AST.
     signature_main: signature;
     external_function: Type;
     ef_sig: external_function -> signature;
-    globvar: Type -> Type
   }
   .
 
@@ -23,11 +22,6 @@ Module AST.
     | Internal: F -> fundef F
     | External: external_function -> fundef F.
 
-    Inductive globdef (F V : Type) : Type :=
-    | Gfun : F -> globdef F V
-    | Gvar : globvar V -> globdef F V
-    .
-
   End AST.
 
 End AST.
@@ -35,8 +29,6 @@ Export AST.
 
 Arguments Internal {_} [_].
 Arguments External {_} [_].
-Arguments Gfun {_} [_] [_].
-Arguments Gvar {_} [_] [_].
 
 Module Values.
   Class class: Type := {
@@ -82,16 +74,16 @@ Module Genv.
     to_senv: forall {F V}, (t F V) -> Senv.t;
     find_funct: forall {F V}, (t F V) -> val -> option F;
     symbol_address: forall {F V}, (t F V) -> ident -> val;
-    map_defs: forall {F1 V1 F2 V2}, (t F1 V1) -> (globdef F1 V1 -> option (globdef F2 V2)) -> (t F2 V2);
+    filter_map_functs: forall {V F1 F2}, (t F1 V) -> (F1 -> option F2) -> (t F2 V);
     public_symbol: forall {F V}, (t F V) -> AST.ident -> bool :=
       fun _ _ ge => Senv.public_symbol (to_senv ge);
-    map_defs_find_funct: forall
-        F1 V1 F2 V2
-        ge (trans: globdef F1 V1 -> option (globdef F2 V2)) fptr fd0
-        (FINDF: find_funct (map_defs ge trans) fptr = Some fd0)
+    filter_map_funct_some: forall
+        V F1 F2
+        (ge: t F1 V) (trans: F1 -> option F2) fptr fd0
+        (FINDF: find_funct (filter_map_functs ge trans) fptr = Some fd0)
       ,
         exists fd1, (<<FINDF: find_funct ge fptr = Some fd1>>) /\
-                    (<<MAP: trans (Gfun fd1) = Some (Gfun fd0)>>)
+                    (<<MAP: trans fd1 = Some fd0>>)
     ;
     (* find_funct_some: forall *)
     (*     F V (ge: t F V) fptr fd *)
