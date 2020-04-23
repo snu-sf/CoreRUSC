@@ -6,6 +6,11 @@ Set Implicit Arguments.
 
 
 
+
+(***
+ident: type for function names (it can be seen as string)
+signature: this is not the essential one. I can remove this later if needed.
+***)
 Module AST.
   Class class: Type := {
     ident: Type;
@@ -30,6 +35,13 @@ Export AST.
 Arguments Internal {_} [_].
 Arguments External {_} [_].
 
+(***
+Vundef is only used for dummy value. I can remove this later if needed.
+int: in CompCert semantics, "final_state" (in Smallstep.v) halts with an integer return value.
+  Q: Why don't allow arbitrary "val"?
+     If final_state can return pointer, the notion of behavioral refinement becomes tricky.
+     Pointer values can change during optimization, so we should allow different pointers in src/tgt, but to what extent?
+***)
 Module Values.
   Class class: Type := {
     val: Type;
@@ -60,6 +72,13 @@ Module Mem.
 End Mem.
 Definition mem `{Mem.class}: Type := Mem.t.
 
+(***
+You may ignore "public_symbol" things and "match_traces" things.
+These are used in CompCert's "forward" simulation, which involves some acrobatics.
+Our mixed simulation theory (Simulation.v) supports three modes: "strict_forward", "forward", and "backward".
+These "public_symbol" and "match_traces" are only related to "forward" mode.
+You can just use "strict_forward" and "backward" mode, then you can ignore such complexities.
+***)
 Module Senv.
   Class class `{AC: AST.class}: Type := {
     t: Type;
@@ -67,6 +86,15 @@ Module Senv.
   }
   .
 End Senv.
+
+(***
+If your semantics supports function pointer,
+you might have some data of type "memory location -> function". (fntbls in refinedc I guess)
+In CompCert, we call it global environment and it is not changed during execution. (we don't support dynamic loading for now)
+Initialization of the memory and global environment is an interesting part, and explained in paper's section 6-1.
+"symbol code" (in the paper) corresponds to Sk.t here.
+"symbol environment" (in the paper) corresponds to SkEnv.t here.
+***)
 
 Module Genv.
   Class class `{AST.class} `{Values.class} `{Senv.class}: Type := {
@@ -85,11 +113,6 @@ Module Genv.
         exists fd1, (<<FINDF: find_funct ge fptr = Some fd1>>) /\
                     (<<MAP: trans fd1 = Some fd0>>)
     ;
-    (* find_funct_some: forall *)
-    (*     F V (ge: t F V) fptr fd *)
-    (*     (FINDF: ge.(find_funct) fptr = Some fd) *)
-    (*   , *)
-    (*     (<<FPTR: fptr <> Vundef>>); *)
   }
   .
   
@@ -133,10 +156,10 @@ End Sk.
 Definition prog_main `{Sk.class} := Sk.prog_main.
 
 Module SkEnv.
-  (*** NOTE: put `{Genv.class} and you get an error, because there are multiple instances of Genv.class
+  (** NOTE: put `{Genv.class} then you have multiple instances of Genv.class
              (one required by Sk.class and the other)
-       TODO: Avoid such thing systematically?
-   ***)
+      TODO: Avoid such thing systematically?
+   **)
   Class class `{Sk.class}: Type := {
     t: Type := Genv.t (fundef signature) unit;
     wf: t -> Prop;
@@ -194,6 +217,16 @@ Module SkEnv.
 End SkEnv.
 
 Coercion SkEnv.to_senv: SkEnv.t >-> Senv.t.
+
+(***
+Some clarification for Genv.t, SkEnv.t, Senv.t:
+- Genv.t has the most information (one actually used in each language's semantics).
+  It maintains "ident -> block" and "block -> F + V". (F: function / V: variable)
+- SKenv.t has less information (knows if a function is internal or external, and its signatures)
+  Actually it is just an instance of Genv.t "Genv.t (fundef signature) unit"
+- Senv.t has least information
+  It maintains "ident -> block" only.
+***)
 
 Module Events.
   Class class `{VC: Values.class} `{MC: Mem.class} `{SC: Senv.class}: Type := {
