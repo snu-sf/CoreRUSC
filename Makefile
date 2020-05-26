@@ -20,9 +20,9 @@ proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
 
 Makefile.coq: Makefile $(COQTHEORIES)
-	(echo "-R lib $(COQMODULE)"; \
-         echo "-R sem $(COQMODULE)"; \
-         echo "-R proof $(COQMODULE)"; \
+	(echo "-R lib $(COQMODULE).lib"; \
+         echo "-R sem $(COQMODULE).sem"; \
+         echo "-R proof $(COQMODULE).proof"; \
          echo "-R . $(COQMODULE)"; \
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
